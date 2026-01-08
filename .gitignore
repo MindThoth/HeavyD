@@ -49,3 +49,15 @@ next-env.d.ts
 .cache/
 .turbo/
 
+# Documentation (keep only README files)
+*_GUIDE.md
+*_SUMMARY.md
+QUICK_*.md
+DEPLOYMENT*.md
+PROJECT_STRUCTURE.md
+CORRECT_*.md
+ORGANIZED_*.md
+GITHUB_*.md
+FORM_*.md
+CLEANUP_*.md
+
