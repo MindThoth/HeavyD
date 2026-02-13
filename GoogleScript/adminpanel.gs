@@ -186,27 +186,33 @@ function getAllClients() {
       return createAdminResponse(false, 'Master sheet not found');
     }
     
-    const data = sheet.getDataRange().getValues();
-    const clients = [];
-    const headers = (data[0] || []).map(function(h) { return String(h || '').toLowerCase().trim(); });
+    var lastRow = sheet.getLastRow();
+    if (lastRow < 2) {
+      return createAdminResponse(true, 'No clients', { clients: [] });
+    }
+    // Force read through column X (24 cols) so Boat Name is always included
+    var numCols = Math.max(24, sheet.getLastColumn());
+    var data = sheet.getRange(1, 1, lastRow, numCols).getValues();
+    var clients = [];
+    var headers = (data[0] || []).map(function(h) { return String(h || '').toLowerCase().trim(); });
     
-    // Resolve column index for "Boat Name" from header (column X in Master)
-    var boatNameCol = 23; // default column X (0-based)
+    // Resolve column index for "Boat Name" from header (column X = index 23)
+    var boatNameCol = 23;
     for (var c = 0; c < headers.length; c++) {
-      if (headers[c].indexOf('boat') !== -1 && headers[c].indexOf('name') !== -1) {
+      if (headers[c].indexOf('boat') !== -1) {
         boatNameCol = c;
         break;
       }
     }
     
-    // Skip header row, start from index 1
     for (var i = 1; i < data.length; i++) {
       var row = data[i];
+      if (!row[3]) continue;
       
-      // Skip empty rows
-      if (!row[3]) continue; // Check if Name column is empty
-      
-      var boatNameVal = (row[boatNameCol] != null && row[boatNameCol] !== '') ? String(row[boatNameCol]).trim() : '';
+      var boatNameVal = '';
+      if (row[boatNameCol] != null && row[boatNameCol] !== '') {
+        boatNameVal = String(row[boatNameCol]).trim();
+      }
       
       var client = {
         date: row[0] || '',
