@@ -188,15 +188,27 @@ function getAllClients() {
     
     const data = sheet.getDataRange().getValues();
     const clients = [];
+    const headers = (data[0] || []).map(function(h) { return String(h || '').toLowerCase().trim(); });
+    
+    // Resolve column index for "Boat Name" from header (column X in Master)
+    var boatNameCol = 23; // default column X (0-based)
+    for (var c = 0; c < headers.length; c++) {
+      if (headers[c].indexOf('boat') !== -1 && headers[c].indexOf('name') !== -1) {
+        boatNameCol = c;
+        break;
+      }
+    }
     
     // Skip header row, start from index 1
-    for (let i = 1; i < data.length; i++) {
-      const row = data[i];
+    for (var i = 1; i < data.length; i++) {
+      var row = data[i];
       
       // Skip empty rows
       if (!row[3]) continue; // Check if Name column is empty
       
-      const client = {
+      var boatNameVal = (row[boatNameCol] != null && row[boatNameCol] !== '') ? String(row[boatNameCol]).trim() : '';
+      
+      var client = {
         date: row[0] || '',
         status: row[1] || '',
         priority: row[2] || '',
@@ -209,18 +221,18 @@ function getAllClients() {
         cost: row[9] || '',
         price: row[10] || '',
         driveLink: row[11] || '',
-        briefLink: row[12] || '',                // Column M - Full URL (e.g., https://docs.google.com/open?id=...)
-        estimateLink: row[13] ? 'https://docs.google.com/spreadsheets/d/' + row[13] : '', // Column N - Construct full URL from ID
-        revisionLink: row[14] || '',         // Column O (index 14) - Revision Link
-        revisionCode: row[15] || '',         // Column P (index 15) - Client Code
-        uploadLink: row[16] || '',           // Column Q
-        quoteLink: row[17] || '',            // Column R
-        receiptLink: row[18] || '',          // Column S
-        notes: row[19] || '',                // Column T
-        timeAmount: row[20] || '',           // Column U
-        timesheetLink: row[22] || '',        // Column W (index 22) - Timesheet URL
-        boatName: row[23] || '',             // Column X (index 23) - Boat name
-        accessCode: row[15] || String(i),    // Column P (index 15)
+        briefLink: row[12] || '',
+        estimateLink: row[13] ? 'https://docs.google.com/spreadsheets/d/' + row[13] : '',
+        revisionLink: row[14] || '',
+        revisionCode: row[15] || '',
+        uploadLink: row[16] || '',
+        quoteLink: row[17] || '',
+        receiptLink: row[18] || '',
+        notes: row[19] || '',
+        timeAmount: row[20] || '',
+        timesheetLink: row[22] || '',
+        boatName: boatNameVal,
+        accessCode: row[15] || String(i),
         rowIndex: i
       };
       
