@@ -176,29 +176,35 @@ function createAdminResponse(success, message, data = {}) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-// Get all clients from Master sheet (same structure as old working script; column X = boat name)
+// Get all clients from Master sheet. Boat name = column with "Boat Name" header, else column 24 (X).
 function getAllClients() {
   try {
     const ss = SpreadsheetApp.openById(MASTER_SHEET_ID);
     const sheet = ss.getSheetByName(MASTER_SHEET_NAME);
-    
     if (!sheet) {
       return createAdminResponse(false, 'Master sheet not found');
     }
-    
     const lastRow = sheet.getLastRow();
     if (lastRow < 2) {
       return createAdminResponse(true, 'No clients', { clients: [] });
     }
-    // Read through column X (24 columns) so row[23] is always Boat Name
-    const data = sheet.getRange(1, 1, lastRow, 24).getValues();
+    const lastCol = Math.max(sheet.getLastColumn(), 24);
+    const data = sheet.getRange(1, 1, lastRow, lastCol).getValues();
+    const headerRow = data[0] || [];
+    var boatNameCol = 23;
+    for (var c = 0; c < headerRow.length; c++) {
+      if (String(headerRow[c]).toLowerCase().indexOf('boat') !== -1) {
+        boatNameCol = c;
+        break;
+      }
+    }
     const clients = [];
-    
-    for (let i = 1; i < data.length; i++) {
-      const row = data[i];
+    for (var i = 1; i < data.length; i++) {
+      var row = data[i];
       if (!row[3]) continue;
-      
-      const client = {
+      var bn = row[boatNameCol];
+      var boatName = (bn !== null && bn !== undefined && bn !== '') ? String(bn).trim() : '';
+      clients.push({
         date: row[0] || '',
         status: row[1] || '',
         priority: row[2] || '',
@@ -221,14 +227,11 @@ function getAllClients() {
         notes: row[19] || '',
         timeAmount: row[20] || '',
         timesheetLink: row[22] || '',
-        boatName: row[23] || '',             // Column X - Boat name
+        boatName: boatName,
         accessCode: row[15] || String(i),
         rowIndex: i
-      };
-      
-      clients.push(client);
+      });
     }
-    
     return createAdminResponse(true, 'Clients loaded successfully', { clients });
   } catch (error) {
     Logger.log('Error in getAllClients: ' + error.toString());
