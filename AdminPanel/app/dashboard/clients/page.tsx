@@ -386,7 +386,11 @@ export default function ClientsPage() {
                         <Link href={`/dashboard/client/${client.revisionCode || client.accessCode}`}>
                           <div className="cursor-pointer hover:text-blue-600">
                             <p className="font-medium text-gray-900 text-sm sm:text-base">{client.name}</p>
-                            <p className="text-xs sm:text-sm text-gray-500">{client.company || "-"}</p>
+                            <p className="text-xs sm:text-sm text-gray-500">
+                              {client.service === "boat-lettering" && client.boatName
+                                ? client.boatName
+                                : (client.company || "-")}
+                            </p>
                           </div>
                         </Link>
                       </td>
