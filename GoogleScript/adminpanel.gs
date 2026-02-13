@@ -239,54 +239,62 @@ function getAllClients() {
   }
 }
 
-// Get single client by code (checks column P - revisionCode)
+// Get single client by code (same column logic as getAllClients so boat name matches)
 function getClient(code) {
   try {
     const ss = SpreadsheetApp.openById(MASTER_SHEET_ID);
     const sheet = ss.getSheetByName(MASTER_SHEET_NAME);
-    
     if (!sheet) {
       return createAdminResponse(false, 'Master sheet not found');
     }
-    
-    const data = sheet.getDataRange().getValues();
-    
-    for (let i = 1; i < data.length; i++) {
-      const row = data[i];
-      // Check if revision code (column P, index 15) matches
-      if (row[15] == code) {
-        const client = {
-          date: row[0] || '',
-          status: row[1] || '',
-          priority: row[2] || '',
-          name: row[3] || '',
-          company: row[4] || '',
-          email: row[5] || '',
-          phone: row[6] || '',
-          language: row[7] || '',
-          service: row[8] || '',
-          cost: row[9] || '',
-          price: row[10] || '',
-          driveLink: row[11] || '',
-          briefLink: row[12] || '',                // Column M - Full URL (e.g., https://docs.google.com/open?id=...)
-          estimateLink: row[13] ? 'https://docs.google.com/spreadsheets/d/' + row[13] : '', // Column N - Construct full URL from ID
-          revisionLink: row[14] || '',         // Column O (index 14) - Revision Link
-          revisionCode: row[15] || '',         // Column P (index 15) - Client Code
-          uploadLink: row[16] || '',           // Column Q
-          quoteLink: row[17] || '',            // Column R
-          receiptLink: row[18] || '',          // Column S
-          notes: row[19] || '',                // Column T
-          timeAmount: row[20] || '',           // Column U
-          timesheetLink: row[22] || '',        // Column W (index 22) - Timesheet URL
-          boatName: row[23] || '',             // Column X (index 23) - Boat name
-          accessCode: row[15] || String(i),    // Column P (index 15)
-          rowIndex: i
-        };
-
-        return createAdminResponse(true, 'Client found', { client });
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 2) {
+      return createAdminResponse(false, 'Client not found');
+    }
+    const lastCol = Math.max(sheet.getLastColumn(), 24);
+    const data = sheet.getRange(1, 1, lastRow, lastCol).getValues();
+    const headerRow = data[0] || [];
+    var boatNameCol = 23;
+    for (var c = 0; c < headerRow.length; c++) {
+      if (String(headerRow[c]).toLowerCase().indexOf('boat') !== -1) {
+        boatNameCol = c;
+        break;
       }
     }
-    
+    for (var i = 1; i < data.length; i++) {
+      var row = data[i];
+      if (row[15] != code) continue;
+      var bn = row[boatNameCol];
+      var boatName = (bn !== null && bn !== undefined && bn !== '') ? String(bn).trim() : '';
+      var client = {
+        date: row[0] || '',
+        status: row[1] || '',
+        priority: row[2] || '',
+        name: row[3] || '',
+        company: row[4] || '',
+        email: row[5] || '',
+        phone: row[6] || '',
+        language: row[7] || '',
+        service: row[8] || '',
+        cost: row[9] || '',
+        price: row[10] || '',
+        driveLink: row[11] || '',
+        briefLink: row[12] || '',
+        estimateLink: row[13] ? 'https://docs.google.com/spreadsheets/d/' + row[13] : '',
+        revisionLink: row[14] || '',
+        revisionCode: row[15] || '',
+        uploadLink: row[16] || '',
+        quoteLink: row[17] || '',
+        receiptLink: row[18] || '',
+        notes: row[19] || '',
+        timeAmount: row[20] || '',
+        timesheetLink: row[22] || '',
+        boatName: boatName,
+        accessCode: row[15] || String(i),
+        rowIndex: i
+      };
+      return createAdminResponse(true, 'Client found', { client: client });
+    }
     return createAdminResponse(false, 'Client not found');
   } catch (error) {
     Logger.log('Error in getClient: ' + error.toString());
