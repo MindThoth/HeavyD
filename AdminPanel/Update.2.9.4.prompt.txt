@@ -1,0 +1,172 @@
+PROMPT FOR CLAUDE — v2.9.4 (FINAL SCOPE, NO PERFORMANCE WORK)
+
+I need you to implement all of the changes below, test them, bump the version to v2.9.4, and then push to GitHub.
+
+Do not change routes, naming, or data structure unless I explicitly ask. Work inside the current architecture.
+
+After code updates are done, commit and push as v2.9.4 with a clear commit message.
+
+Scope for v2.9.4:
+
+EMPLOYEE TAB
+
+Add the ability to edit an employee’s info (name, hourly rate, role, etc.).
+
+I should be able to edit directly from the UI (inline edit or modal is fine).
+
+When I save, update the correct row in the Master sheet.
+
+Add the ability to delete an individual time entry.
+
+When I delete a time entry in the Employee tab, also delete that exact same entry from the correct client’s timesheet in Drive.
+
+You MUST match the client using the unique client code in column P of the Master sheet — do not rely only on name or email because they are not unique.
+
+Add a confirmation “Are you sure?” before final delete.
+
+Fix timestamp display formatting:
+
+Date format: YYYY-MM-DD (example: 2025-10-29).
+
+Time format: 12-hour clock with AM / PM.
+
+Display everything in Atlantic Time (AST). Convert before rendering in the UI so I always see AST.
+
+RECEIPT TAB
+
+A. Access code
+
+Add an access code field for each receipt.
+
+This access code = the 4 digits from the client’s code (column P in the Master sheet).
+
+B. Clickable client
+
+Make the client’s name clickable.
+
+Clicking it should open that client’s page at /admin/client/[code], where [code] is the client code from column P.
+
+C. Receipt list UI changes
+
+In the receipt list:
+
+Show the client code from column P (instead of any placeholder/internal code we’re currently showing).
+
+Show the date of the receipt.
+
+Default order: newest first by date.
+
+Add clickable column headers (ex: Date, Client Code, Amount, Status). Clicking a header should toggle sort ascending/descending for that column.
+
+D. Receipt lifecycle tracking
+We track 3 states for every receipt:
+
+Generated
+
+Receipt Sent
+
+Paid
+
+Update logic to follow this timeline:
+
+When I generate a receipt from the client page:
+
+Generate the PDF of the receipt.
+
+Save that PDF in the client’s Drive folder. (This part already exists today.)
+
+In the central Receipts Tracker sheet, create or update a row for this receipt with:
+
+Date
+
+Client name
+
+Client code (column P)
+
+Amount
+
+Link to the PDF that’s in the client’s folder
+
+Status = Generated
+
+Timestamp for when it was generated
+
+When I change the receipt status to Receipt Sent:
+
+Do NOT move or copy any PDF yet.
+
+Update that same row in the Receipts Tracker sheet:
+
+Status = Receipt Sent
+
+Add/update timestamp for when it was marked sent
+
+When the client pays and I change the status to Paid:
+
+Take the same PDF from the client’s Drive folder.
+
+Rename the file to include PAID in the filename.
+
+Copy that renamed PDF into the central Receipts Drive in this structure:
+/Receipts/<YEAR>/<MONTH>/
+Example: /Receipts/2025/Oct/
+
+Automatically create the <YEAR> and <MONTH> folders if they do not already exist.
+
+Update the Receipts Tracker sheet row again:
+
+Status = Paid
+
+Add/update timestamp for when it was paid
+
+Store the link to the PAID version in the /Receipts/<YEAR>/<MONTH>/ folder
+
+Rules:
+
+The copy into /Receipts/<YEAR>/<MONTH>/ ONLY happens when status becomes Paid.
+
+Before that, (Generated, Receipt Sent) the PDF only lives in the client’s folder.
+
+The Receipts Tracker sheet is now the full audit trail:
+
+when generated
+
+when sent
+
+when paid
+
+link(s) to the file at each stage
+
+E. Source of truth
+
+The Receipts tab in the dashboard should read from the Receipts Tracker sheet.
+
+Each row in that sheet = one receipt.
+
+VERSIONING / GIT
+
+Update any visible version text in the UI to v2.9.4 including the login and code.gs.
+
+Add/update the changelog/comment header in code for this release.
+
+Then:
+
+Stage all changes.
+
+Commit with message:
+v2.9.4 — employee edit/delete with AST timestamps, receipt lifecycle (Generated → Sent → Paid) with Drive sync + tracker sheet + sortable receipt list
+
+Push to GitHub.
+
+Important reminders:
+
+Time entry deletion has to remove it from BOTH:
+
+the employee’s view AND
+
+the correct client timesheet in Drive.
+Use the unique client code from column P to match.
+
+In the Receipts Tracker sheet, keep timestamps for Generated, Sent, Paid so later we can display history in the UI.
+
+End of scope for v2.9.4. Implement, test, bump version, then push.
