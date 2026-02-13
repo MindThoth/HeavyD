@@ -1,11 +1,8 @@
+// Use same-origin proxy so script response is always readable (no CORS/env issues)
+const GAS_BASE = "/api/gas"
+
 // API helper for Google Apps Script integration (GET requests)
 export async function api<T = any>(action: string, params: Record<string, any> = {}) {
-  const base = process.env.NEXT_PUBLIC_GAS_ENDPOINT
-
-  if (!base) {
-    throw new Error("Missing environment variable. Please set NEXT_PUBLIC_GAS_ENDPOINT in .env.local")
-  }
-
   // Filter out null/undefined values
   const filteredParams = Object.fromEntries(
     Object.entries(params).filter(([, v]) => v != null)
@@ -14,12 +11,13 @@ export async function api<T = any>(action: string, params: Record<string, any> =
   try {
     console.log("[API] Calling:", action, filteredParams)
 
-    // Build query string (api=admin routes to Admin Panel in main.gs when using one project)
-    const qp = new URLSearchParams({ api: 'admin', action, ...filteredParams })
-    const response = await fetch(`${base}?${qp.toString()}`, {
-      cache: "no-store",
-      method: "GET",
-    })
+    const tryFetch = (withAdmin: boolean) => {
+      const queryParams = withAdmin ? { api: 'admin', action, ...filteredParams } : { action, ...filteredParams }
+      const qp = new URLSearchParams(queryParams)
+      return fetch(`${GAS_BASE}?${qp.toString()}`, { cache: "no-store", method: "GET" })
+    }
+
+    let response = await tryFetch(true)
 
     console.log("[API] Response status:", response.status)
 
@@ -29,15 +27,26 @@ export async function api<T = any>(action: string, params: Record<string, any> =
       throw new Error(`HTTP ${response.status}: ${response.statusText}`)
     }
 
-    const responseText = await response.text()
+    let responseText = await response.text()
     console.log("[API] Response (first 200 chars):", responseText.substring(0, 200))
 
-    let json
+    let json: any
     try {
       json = JSON.parse(responseText)
     } catch (parseError) {
       console.error("[API] JSON parse error:", parseError)
       throw new Error(`Invalid JSON response: ${responseText.substring(0, 100)}`)
+    }
+
+    // If script returned "Unknown action" for a dashboard action, retry without api=admin (hits dashboard handler)
+    const unknownAction = json && json.error && String(json.error).startsWith("Unknown action:")
+    const dashboardActions = ["getAllClients", "getClientData"]
+    const isDashboardAction = dashboardActions.includes(action)
+    if (unknownAction && isDashboardAction) {
+      console.log("[API] Retrying without api=admin (dashboard route)")
+      response = await tryFetch(false)
+      if (response.ok) responseText = await response.text()
+      try { json = JSON.parse(responseText) } catch (_) {}
     }
 
     if (!json || typeof json !== "object") {
@@ -61,23 +70,14 @@ export async function api<T = any>(action: string, params: Record<string, any> =
   }
 }
 
-// API helper for POST requests (using text/plain to avoid CORS preflight)
+// API helper for POST requests (via same-origin proxy)
 export async function apiPost<T = any>(mode: string, data: Record<string, any> = {}) {
-  const base = process.env.NEXT_PUBLIC_GAS_ENDPOINT
-
-  if (!base) {
-    throw new Error("Missing environment variable. Please set NEXT_PUBLIC_GAS_ENDPOINT in .env.local")
-  }
-
   try {
     console.log("[API POST] Calling:", mode, data)
 
-    // Use text/plain to avoid CORS preflight issues with Google Apps Script
-    const response = await fetch(base, {
+    const response = await fetch(GAS_BASE, {
       method: "POST",
-      headers: {
-        "Content-Type": "text/plain",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ api: 'admin', mode, ...data }),
     })
 

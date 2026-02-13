@@ -438,213 +438,75 @@ export default function HeavyDLanding() {
 
     setHasFiles(hasUploadedFiles)
 
-    // Google Apps Script Web App URL - Main Heavy D deployment (form submission)
     const scriptURL = process.env.NEXT_PUBLIC_GAS_ENDPOINT ||
       "https://script.google.com/macros/s/AKfycbxidAdAasl0tFNMk2ILW_44gXAxVVTYPyzfwRBum9XTuZ9wOC5_BjcRKCALJf0IKD2h-g/exec"
 
     try {
-      // Create a clean object with all form data, excluding FileList objects
       const formDataToSend: Record<string, any> = {}
-
-      // Add all form fields to the object
       Object.entries(formData).forEach(([key, value]) => {
         if (value !== null && value !== undefined && !(value instanceof FileList)) {
           formDataToSend[key] = value
         }
       })
-
-      // Add metadata
       formDataToSend.timestamp = new Date().toISOString()
       formDataToSend.language = language
       formDataToSend.hasFiles = hasUploadedFiles.toString()
 
-      console.log("Sending data:", formDataToSend) // Debug log
+      console.log("Sending data:", formDataToSend)
 
-      // Try multiple approaches to handle potential CORS issues
       let response: Response | null = null
       let lastError: Error | null = null
 
-      // Approach 1: Standard fetch with JSON
+      // Prefer same-origin API proxy so we can read success/error (no CORS issues)
       try {
-        console.log("Attempting standard JSON fetch...")
-        response = await fetch(scriptURL, {
+        response = await fetch("/api/submit-form", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(formDataToSend),
         })
-        console.log("Standard fetch successful:", response.status)
+        console.log("Proxy response status:", response.status)
       } catch (error) {
-        console.log("Standard fetch failed:", error)
         lastError = error as Error
       }
 
-      // Approach 2: If JSON fails, try form-encoded data
+      // Fallback: direct to script with text/plain (response may be unreadable due to CORS)
       if (!response || !response.ok) {
         try {
-          console.log("Attempting form-encoded fetch...")
-          const formBody = new URLSearchParams()
-          Object.entries(formDataToSend).forEach(([key, value]) => {
-            if (typeof value === "object") {
-              formBody.append(key, JSON.stringify(value))
-            } else {
-              formBody.append(key, String(value))
-            }
-          })
-
           response = await fetch(scriptURL, {
             method: "POST",
-            headers: {
-              "Content-Type": "application/x-www-form-urlencoded",
-            },
-            body: formBody.toString(),
-          })
-          console.log("Form-encoded fetch successful:", response.status)
-        } catch (error) {
-          console.log("Form-encoded fetch failed:", error)
-          lastError = error as Error
-        }
-      }
-
-      // Approach 3: If both fail, try with no-cors mode (last resort)
-      if (!response || !response.ok) {
-        try {
-          console.log("Attempting no-cors fetch...")
-          response = await fetch(scriptURL, {
-            method: "POST",
-            mode: "no-cors",
-            headers: {
-              "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
             body: JSON.stringify(formDataToSend),
           })
-          console.log("No-cors fetch completed (opaque response)")
-
-          // With no-cors, we can't read the response, so assume success
-          setIsSubmitted(true)
-          setIsSubmitting(false)
-          setSubmissionInProgress(false)
-          submissionRef.current = false
-
-          // Reset form
-          setFormData({
-            name: "",
-            email: "",
-            phone: "",
-            company: "",
-            service: "",
-            message: "",
-            preferredLanguage: "",
-            timeline: "",
-            additionalFiles: null,
-            slogan: "",
-            businessDescription: "",
-            targetAudience: "",
-            colorPreferences: "",
-            designPreferences: "",
-            imageInMind: "",
-            additionalInfo: "",
-            uploadFiles: null,
-            boatName: "",
-            existingDesign: "",
-            uploadExistingDesign: null,
-            layoutIdeas: "",
-            boatLocation: "",
-            hullType: "",
-            hullColor: "",
-            cabinColor: "",
-            namesFront: "",
-            nameStern: "",
-            nameCabinCap: "",
-            frontCapText: "",
-            backCapText: "",
-            bowDesign: "",
-            needNumbers: "",
-            whatNumbers: "",
-            numbersHeight: "",
-            front: "",
-            back: "",
-            differentCapName: "",
-            capHeight: "",
-            needPhoneNumber: "",
-            phoneInWindow: "",
-            windowWidth: "",
-            uploadBoatPhotos: null,
-            needInstall: "",
-            installLocation: "",
-            vehicleTypeText: "",
-            vehicleColor: "",
-            vehicleText: "",
-            logoOnVehicle: "",
-            uploadLogo: null,
-            phoneOnVehicle: "",
-            textInWindow: "",
-            windowSize: "",
-            vehicleLayoutIdeas: "",
-            uploadVehiclePhotos: null,
-            vehicleNeedInstall: "",
-            vehicleInstallLocation: "",
-            stickers: [
-              {
-                stickerFor: "",
-                stickerProjectDescription: "",
-                preferredShape: "",
-                lamination: "",
-                stickerHeight: "",
-                stickerWidth: "",
-                quantity: "",
-                hasStickerVisuals: "",
-              },
-            ],
-            magnetFor: "",
-            magnetSize: "",
-            magnetQuantity: "",
-            magnetDesign: "",
-            uploadMagnetDesign: null,
-            droneSubject: "",
-            droneLocation: "",
-            droneSpecificRequests: "",
-            droneUsage: "",
-            droneTimeline: "",
-            vehicleType: "",
-            boatType: "",
-            logoStyle: "",
-            stickerQuantity: "",
-            socialPlatforms: [],
-            bowDesignDetails: "",
-            magnetProjectDescription: "",
-            droneOtherSubject: "",
-            additionalInformation: "",
-          })
-          setSelectedService("")
-          return // Exit early for no-cors success
         } catch (error) {
-          console.log("No-cors fetch failed:", error)
           lastError = error as Error
         }
       }
+
+      // No "no-cors assume success" – only show success when we get a real 200 and result
 
       // If we have a response, try to process it
       if (response && response.ok) {
         console.log("Response status:", response.status)
-        console.log("Response headers:", Object.fromEntries(response.headers.entries()))
+        const text = await response.text()
+        console.log("Response text:", text)
 
-        // Try to parse response
-        let result
+        let result: { result?: string; error?: string; uploadLink?: string } = {}
         try {
-          const text = await response.text()
-          console.log("Response text:", text)
           result = JSON.parse(text)
-          if (result.uploadLink) {
-            setUploadLink(result.uploadLink)
-          }
-        } catch (parseError) {
-          console.log("Response parsing failed, assuming success")
-          result = { result: "success" }
+        } catch {
+          console.log("Response parsing failed")
         }
 
-        setIsSubmitted(true)
+        // Only show success when script actually returned success (or upload link)
+        const isSuccess = result.result === "success" || !!result.uploadLink
+        if (isSuccess && result.uploadLink) {
+          setUploadLink(result.uploadLink)
+        }
+        if (!isSuccess && result.error) {
+          setError(result.error)
+        }
+
+        setIsSubmitted(isSuccess)
         setIsSubmitting(false)
         setSubmissionInProgress(false)
         submissionRef.current = false
@@ -741,7 +603,21 @@ export default function HeavyDLanding() {
         })
         setSelectedService("")
       } else {
-        // All approaches failed
+        // Response was not OK – try to read error from body (script returns CORS so we can read it)
+        if (response && !response.ok) {
+          try {
+            const text = await response.text()
+            const errBody = JSON.parse(text)
+            if (errBody && errBody.error) {
+              setError(errBody.error)
+              alert(errBody.error)
+              setIsSubmitting(false)
+              setSubmissionInProgress(false)
+              submissionRef.current = false
+              return
+            }
+          } catch (_) {}
+        }
         throw lastError || new Error(`HTTP error! status: ${response?.status || "unknown"}`)
       }
     } catch (error) {
@@ -750,7 +626,6 @@ export default function HeavyDLanding() {
       setSubmissionInProgress(false)
       submissionRef.current = false
 
-      // More specific error handling
       let errorMessage = ""
       if (error instanceof TypeError && error.message.includes("Failed to fetch")) {
         errorMessage =

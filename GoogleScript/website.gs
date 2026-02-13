@@ -146,14 +146,15 @@ function handleWebsiteFormSubmission(e) {
       data.email || "",   // F
       data.phone || "",   // G
       data.preferredLanguage || "", // H
-      displayService,     // I (boat: boat name; other: pretty service)
+      projectType,        // I – service key (e.g. boat-lettering)
       "", "",             // J, K
       folderUrl,          // L
       briefUrl,           // M
       "", "",             // N, O
       accessCode,         // P
       uploadLink,         // Q
-      "", "", "", "", ""  // R..V
+      "", "", "", "", "", "",  // R..W
+      isBoat ? (boatNameRaw || "") : ""  // X – boat name (only for boat-lettering)
     ]);
 
     // Admin email
@@ -233,12 +234,8 @@ function doOptions(e) {
 }
 
 function createCORSResponse(content) {
-  const output = ContentService.createTextOutput(content).setMimeType(ContentService.MimeType.JSON);
-  output.setHeader("Access-Control-Allow-Origin", "*");
-  output.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE");
-  output.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
-  output.setHeader("Access-Control-Max-Age", "3600");
-  return output;
+  // Apps Script TextOutput does not support setHeader; CORS cannot be set. Call script via same-origin proxy (e.g. Next.js API) to read response.
+  return ContentService.createTextOutput(content).setMimeType(ContentService.MimeType.JSON);
 }
 
 // Sheet tab names (for per-service sheets)

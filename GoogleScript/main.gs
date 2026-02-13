@@ -24,12 +24,16 @@ function doGet(e) {
     console.log('=== GET REQUEST ===');
     console.log('Parameters:', JSON.stringify(e.parameter));
     
-    // Admin Panel (admin.heavydetailing.com) – same project, route by api=admin
-    if (e.parameter.api === 'admin') {
+    // Admin Panel – route by api=admin (normalize: param can be string or array, case-insensitive)
+    var apiParam = e.parameter && e.parameter.api;
+    if (apiParam && typeof apiParam === 'object' && apiParam.length !== undefined) apiParam = apiParam[0];
+    if (apiParam && String(apiParam).toLowerCase() === 'admin') {
       return handleAdminGet(e);
     }
     
-    const action = e.parameter.action || 'health';
+    var action = (e.parameter && e.parameter.action) || 'health';
+    if (action && typeof action === 'object' && action.length !== undefined) action = action[0];
+    action = String(action || 'health').trim();
     console.log('Action:', action);
     
     // Route to Dashboard handlers (from dashboard.gs)
@@ -178,7 +182,8 @@ function routeToWebsite_POST(e, data) {
 }
 
 /**
- * Create standardized JSON response
+ * Create standardized JSON response.
+ * Note: Apps Script TextOutput cannot set CORS headers; use a same-origin proxy (e.g. Next.js API route) to read the response from your website.
  */
 function createJsonResponse(data, statusCode = 200) {
   const output = ContentService.createTextOutput(JSON.stringify(data));

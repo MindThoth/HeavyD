@@ -30,7 +30,9 @@ const RECEIPT_TEMPLATE_FR_ID = '1sM3cgM_llLtCaNzxkxxdKBL6GEV1gjdBkXxSwUnE_2o';  
 // Admin Panel web app GET handler (called by doGet in Admin Panel project only - see end of file)
 function handleAdminGet(e) {
   try {
-    const action = e.parameter.action;
+    var action = e.parameter && e.parameter.action;
+    if (action && typeof action === 'object' && action.length !== undefined) action = action[0];
+    action = action ? String(action).trim() : '';
     
     if (!action) {
       return createAdminResponse(false, 'No action specified');
