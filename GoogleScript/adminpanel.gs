@@ -176,7 +176,7 @@ function createAdminResponse(success, message, data = {}) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-// Get all clients from Master sheet
+// Get all clients from Master sheet (same structure as old working script; column X = boat name)
 function getAllClients() {
   try {
     const ss = SpreadsheetApp.openById(MASTER_SHEET_ID);
@@ -186,35 +186,19 @@ function getAllClients() {
       return createAdminResponse(false, 'Master sheet not found');
     }
     
-    var lastRow = sheet.getLastRow();
+    const lastRow = sheet.getLastRow();
     if (lastRow < 2) {
       return createAdminResponse(true, 'No clients', { clients: [] });
     }
-    // Force read through column X (24 cols) so Boat Name is always included
-    var numCols = Math.max(24, sheet.getLastColumn());
-    var data = sheet.getRange(1, 1, lastRow, numCols).getValues();
-    var clients = [];
-    var headers = (data[0] || []).map(function(h) { return String(h || '').toLowerCase().trim(); });
+    // Read through column X (24 columns) so row[23] is always Boat Name
+    const data = sheet.getRange(1, 1, lastRow, 24).getValues();
+    const clients = [];
     
-    // Resolve column index for "Boat Name" from header (column X = index 23)
-    var boatNameCol = 23;
-    for (var c = 0; c < headers.length; c++) {
-      if (headers[c].indexOf('boat') !== -1) {
-        boatNameCol = c;
-        break;
-      }
-    }
-    
-    for (var i = 1; i < data.length; i++) {
-      var row = data[i];
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
       if (!row[3]) continue;
       
-      var boatNameVal = '';
-      if (row[boatNameCol] != null && row[boatNameCol] !== '') {
-        boatNameVal = String(row[boatNameCol]).trim();
-      }
-      
-      var client = {
+      const client = {
         date: row[0] || '',
         status: row[1] || '',
         priority: row[2] || '',
@@ -237,7 +221,7 @@ function getAllClients() {
         notes: row[19] || '',
         timeAmount: row[20] || '',
         timesheetLink: row[22] || '',
-        boatName: boatNameVal,
+        boatName: row[23] || '',             // Column X - Boat name
         accessCode: row[15] || String(i),
         rowIndex: i
       };
