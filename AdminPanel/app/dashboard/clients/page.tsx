@@ -387,8 +387,8 @@ export default function ClientsPage() {
                           <div className="cursor-pointer hover:text-blue-600">
                             <p className="font-medium text-gray-900 text-sm sm:text-base">{client.name}</p>
                             <p className="text-xs sm:text-sm text-gray-500">
-                              {client.service === "boat-lettering" && client.boatName
-                                ? client.boatName
+                              {(client.service || "").toLowerCase().replace(/\s+/g, "-") === "boat-lettering"
+                                ? ((client.boatName || "").trim() || "-")
                                 : (client.company || "-")}
                             </p>
                           </div>
