@@ -707,8 +707,12 @@ function getAllClients() {
   if (!sheet) {
     return createResponse(false, 'Master sheet not found');
   }
-  
-  const data = sheet.getDataRange().getValues();
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    return createResponse(true, 'No clients', { clients: [] });
+  }
+  // Read through column X (24) so boatName (row[23]) and timesheetLink (row[22]) are always present
+  const data = sheet.getRange(1, 1, lastRow, 24).getValues();
   const clients = [];
   
   console.log('=== ADMIN VIEW - ALL CLIENTS DEBUGGING ===');
@@ -740,7 +744,9 @@ function getAllClients() {
         quotePdfUrl: row[17] || '',
         receiptPdfUrl: row[18] || '',   // Column S - Receipt PDF URL
         timeAmount: row[21] || '',          // Column V - Time amount (to show on button)
-        timesheetLink: row[22] || '',
+        timesheetLink: row[22] || '',        // Column W - Time Sheet link
+        boatName: (row[23] != null && row[23] !== '') ? String(row[23]).trim() : '', // Column X - Boat name
+        revisionCode: row[15] || '',        // Same as accessCode for Admin Panel link
       });
     }
   }

@@ -387,9 +387,7 @@ export default function ClientsPage() {
                           <div className="cursor-pointer hover:text-blue-600">
                             <p className="font-medium text-gray-900 text-sm sm:text-base">{client.name}</p>
                             <p className="text-xs sm:text-sm text-gray-500">
-                              {(client.service || "").toLowerCase().replace(/\s+/g, "-") === "boat-lettering"
-                                ? (client.boatName || "").trim() || (client.company || "").trim()
-                                : (client.company || "").trim()}
+                              {(client.company || "").trim() || "-"}
                             </p>
                           </div>
                         </Link>
@@ -397,7 +395,7 @@ export default function ClientsPage() {
                       <td className="px-2 sm:px-4 py-3 hidden sm:table-cell">
                         <div>
                           <p className="text-sm text-gray-900">{client.service || "-"}</p>
-                          {client.service === 'boat-lettering' && client.boatName && (
+                          {(client.service || "").toLowerCase().replace(/\s+/g, "-") === "boat-lettering" && client.boatName && (
                             <p className="text-xs text-blue-600 font-medium mt-1">
                               {client.boatName}
                             </p>
