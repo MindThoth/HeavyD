@@ -176,7 +176,7 @@ function createAdminResponse(success, message, data = {}) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-// Get all clients from Master sheet. Boat name = column 23 (0-based index 22).
+// Get all clients from Master sheet. Column W (index 22) = timesheetLink, Column X (index 23) = boatName.
 function getAllClients() {
   try {
     const ss = SpreadsheetApp.openById(MASTER_SHEET_ID);
@@ -188,7 +188,7 @@ function getAllClients() {
     if (lastRow < 2) {
       return createAdminResponse(true, 'No clients', { clients: [] });
     }
-    const data = sheet.getRange(1, 1, lastRow, 23).getValues();
+    const data = sheet.getRange(1, 1, lastRow, 24).getValues();
     const clients = [];
     for (var i = 1; i < data.length; i++) {
       var row = data[i];
@@ -216,7 +216,7 @@ function getAllClients() {
         notes: row[19] || '',
         timeAmount: row[20] || '',
         timesheetLink: row[22] || '',
-        boatName: row[22] || '',
+        boatName: row[23] || '',
         accessCode: row[15] || String(i),
         rowIndex: i
       });
@@ -228,7 +228,7 @@ function getAllClients() {
   }
 }
 
-// Get single client by code. Boat name = column 23 (0-based index 22).
+// Get single client by code. Same column mapping as getAllClients (W=timesheet, X=boat name).
 function getClient(code) {
   try {
     const ss = SpreadsheetApp.openById(MASTER_SHEET_ID);
@@ -236,7 +236,7 @@ function getClient(code) {
     if (!sheet) {
       return createAdminResponse(false, 'Master sheet not found');
     }
-    const data = sheet.getRange(1, 1, sheet.getLastRow(), 23).getValues();
+    const data = sheet.getRange(1, 1, sheet.getLastRow(), 24).getValues();
     for (var i = 1; i < data.length; i++) {
       var row = data[i];
       if (row[15] != code) continue;
@@ -263,7 +263,7 @@ function getClient(code) {
         notes: row[19] || '',
         timeAmount: row[20] || '',
         timesheetLink: row[22] || '',
-        boatName: row[22] || '',
+        boatName: row[23] || '',
         accessCode: row[15] || String(i),
         rowIndex: i
       };
